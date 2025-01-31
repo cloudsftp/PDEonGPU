@@ -20,28 +20,29 @@ default(size=(1200, 400), framestyle=:box, label=false, grid=false, margin=10mm,
     ncheck      = ceil(Int,0.25nx)
 
     # derived numerics
-    dx   = lx / nx
-    dt   = dx / √(1 / ρ)
-    xc   = LinRange(dx / 2, lx - dx / 2, nx)
+    dx,dy   = lx/nx,ly/ny
+    xc,yc   = LinRange(dx/2,lx-dx/2,nx),LinRange(dy/2,ly-dy/2,ny)
+    dt      = dx/sqrt(1/ρ)/sqrt(2)
 
     # array initialisation
-    C    = @. 1.0 + exp(-(xc-lx/4)^2) - xc/lx
-    C_i  = copy(C)
-    qx   = zeros(Float64, nx - 1)
+    C       = @. 1.0 + exp(-(xc-lx/4)^2-(yc'-ly/4)^2) - xc/lx
+    qx,qy   = zeros(nx-1,ny), zeros(nx,ny-1)
 
     # iteration loop
     iter = 1; err = 2ϵtol; iter_evo = Float64[]; err_evo = Float64[]
     while err >= ϵtol && iter <= maxiter
-        qx         .-= dt ./ (ρ * dc + dt) .* (qx + dc .* diff(C) ./ dx) # implicit
-        #C[2:end-1] .-= dt  / dx .* diff(qx)
-        C[2:end-1] .-= dt./(1 + dt/ξ) .*((C[2:end-1] .- C_eq)./ξ .+ diff(qx)./dx)
+
+        qx                 .-= dt./(ρ + dt/dc).*(qx./dc .+ diff(C,dims=1)./dx)
+        qy                 .-= dt./(ρ + dt/dc).*(qy./dc .+ diff(C,dims=2)./dy)
+        C[2:end-1,2:end-1] .-= dt./(1 + dt/ξ) .*((C[2:end-1,2:end-1] .- C_eq)./ξ .+ diff(qx[:,2:end-1],dims=1)./dx .+
+                                                                                    diff(qy[2:end-1,:],dims=2)./dy)
 
         if iter % ncheck == 0
-            err = maximum(abs.(diff(dc.*diff(C)./dx)./dx .- ((C .- C_eq) ./ ξ)[2:nx-1]))
+            err = maximum(abs.(diff(dc.*diff(C, dims=1)./dx, dims=1)./dx .- ((C .- C_eq) ./ ξ)[2:nx-1]))
             push!(iter_evo,iter/nx); push!(err_evo,err)
 
-            p1 = plot(xc,[C_i,C];xlims=(0,lx),ylims=(-0.1,2.0),
-                    xlabel="lx",ylabel="Concentration",title="iter/nx=$(round(iter/nx,sigdigits=3))")
+            p1 = heatmap(xc,yc,C';xlims=(0,lx),ylims=(0,ly),clims=(0,1),aspect_ratio=1,
+                        xlabel="lx",ylabel="ly",title="iter/nx=$(round(iter/nx,sigdigits=3))")
 
             p2 = plot(iter_evo,err_evo;xlabel="iter/nx",ylabel="err",
                     yscale=:log10,grid=true,markershape=:circle,markersize=10)

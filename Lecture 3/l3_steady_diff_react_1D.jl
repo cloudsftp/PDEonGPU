@@ -3,18 +3,18 @@ default(size=(1200, 400), framestyle=:box, label=false, grid=false, margin=10mm,
 
 @views function diffusion_1D()
     # physics
-    lx,ly = 20.0,20.0
-    dc    = 1.0::Float64
-    da    = 10.0::Float64
-    re    = π + sqrt(π^2 + da)
-    re    = 2π
-    ρ     = (lx/(dc*re))^2
-    C_eq  = 0.1::Float64
-    ξ     = lx^2/dc/da
-    re    = 2π
+    lx   = 20.0::Float64
+    dc   = 1.0::Float64
+    da   = 10.0::Float64
+    re   = π + sqrt(π^2 + da)
+    re   = 2π
+    ρ    = (lx/(dc*re))^2
+    C_eq = 0.1::Float64
+    ξ    = lx^2/dc/da
+    re   = 2π
 
     # numerics
-    nx,ny       = 100,100
+    nx          = 200::Int64
     ϵtol        = 1e-8::Float64
     maxiter     = 20nx
     ncheck      = ceil(Int,0.25nx)
